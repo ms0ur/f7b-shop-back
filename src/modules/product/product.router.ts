@@ -10,10 +10,10 @@ const ProductDTO = t.Object({
     previousPrice: t.Optional(t.Number()),
 })
 
-export const product = new Elysia({prefix: '/product'})
+export const product = new Elysia({ prefix: '/product' })
     .get('/', () => repo.getProducts())
-    
-    .get(':id', ({ params: { id }}) => {
+
+    .get(':id', ({ params: { id } }) => {
         const res = repo.getProduct(id)
         return res
     })
@@ -39,5 +39,10 @@ export const product = new Elysia({prefix: '/product'})
 
     .delete(':id', ({ params: { id } }) => {
         const res = repo.deleteProduct(id)
+        return { success: true }
+    })
+
+    .get('/generate/:count', ({ params: { count } }) => {
+        repo.generateProductsFromFakerJs(Number(count))
         return { success: true }
     })
