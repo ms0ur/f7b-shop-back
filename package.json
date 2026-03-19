@@ -8,7 +8,10 @@
   "dependencies": {
     "@elysiajs/openapi": "^1.4.14",
     "@faker-js/faker": "^10.3.0",
-    "elysia": "latest"
+    "@types/jsonwebtoken": "^9.0.10",
+    "argon2": "^0.44.0",
+    "elysia": "latest",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "bun-types": "latest"

@@ -1,29 +1,42 @@
 import { Elysia, t } from 'elysia'
 import * as repo from './user.repo'
+import { authPlugin } from '../../plugins/auth.plugin'
 
-const userDTO = t.Object({
-    id: t.String(),
-    name: t.String(),
-    email: t.String(),
-    password: t.String(),
-    role: t.Union([
-        t.Literal('admin'),
-        t.Literal('user')
-    ]),
-    cart: t.Array(t.String()),
-    orders: t.Array(t.String()),
-})
+export const user = new Elysia({ prefix: '/api/users' })
+    .use(authPlugin)
 
-export const user = new Elysia({ prefix: '/users' })
-    .get('/', () => repo.getUsers())
-    .get(':id', ({ params }) => repo.getUser(params.id))
-    .post('/', ({ body }) => repo.createUser(
-        body.name,
-        body.email,
-        body.password,
-        body.role,
-    ), { body: userDTO })
-    .put(':id', ({ params, body }) => repo.editUser(params.id, body), { body: t.Partial(userDTO) })
-    .delete(':id', ({ params }) => repo.deleteUser(params.id))
-    .post('/login', ({ body }) => repo.loginUser(body.email, body.password), { body: t.Object({ email: t.String(), password: t.String() }) })
+    .get('/', ({ user: authUser, set }) => {
+        if (!authUser) { set.status = 401; return { error: 'Unauthorized' } }
+        if (authUser.role !== 'admin') { set.status = 403; return { error: 'Forbidden' } }
+        return repo.getUsers()
+    })
 
+    .get('/:id', ({ user: authUser, set, params: { id } }) => {
+        if (!authUser) { set.status = 401; return { error: 'Unauthorized' } }
+        if (authUser.role !== 'admin') { set.status = 403; return { error: 'Forbidden' } }
+        const result = repo.getUser(id)
+        if (!result) { set.status = 404; return { error: 'Not found' } }
+        return result
+    })
+
+    .put('/:id', ({ user: authUser, set, params: { id }, body }) => {
+        if (!authUser) { set.status = 401; return { error: 'Unauthorized' } }
+        if (authUser.role !== 'admin') { set.status = 403; return { error: 'Forbidden' } }
+        const result = repo.editUser(id, body)
+        if (!result) { set.status = 404; return { error: 'Not found' } }
+        return result
+    }, {
+        body: t.Partial(t.Object({
+            name: t.String(),
+            email: t.String(),
+            role: t.Union([t.Literal('user'), t.Literal('seller'), t.Literal('admin')]),
+        }))
+    })
+
+    .delete('/:id', ({ user: authUser, set, params: { id } }) => {
+        if (!authUser) { set.status = 401; return { error: 'Unauthorized' } }
+        if (authUser.role !== 'admin') { set.status = 403; return { error: 'Forbidden' } }
+        const success = repo.blockUser(id)
+        if (!success) { set.status = 404; return { error: 'Not found' } }
+        return { success: true }
+    })
